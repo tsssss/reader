@@ -31,6 +31,7 @@ def test_create_project_event_request():
     var = event.read_data()
     var = event.read('rbsp','efield',settings={'probe':'b','spin_axis':'e0'})
     var = event.read('rbsp','efield',probe='a')
+    var = event.read('rbsp','bfield',probe='a')
 
 
 

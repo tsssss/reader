@@ -1,8 +1,8 @@
 
-supported_missions = dict()
-def register_mission(the_mission):
-    supported_missions[the_mission.name] = the_mission
-    return the_mission
+avail_missions = dict()
+def register_mission(mission):
+    avail_missions[mission.id] = mission
+    return mission
 
-import missions.rbsp.rbsp
-import missions.themis.themis
+import missions.rbsp.rbsp as rbsp
+import missions.themis.themis as themis

@@ -3,7 +3,7 @@ from cotrans import regiser_coord
 
 @register_mission
 class THEMIS:
-    name = 'themis'
+    id = 'themis'
 
 
 @regiser_coord

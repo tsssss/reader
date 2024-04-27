@@ -1,6 +1,6 @@
 import os
-import yaml
-from missions import supported_missions
+from missions import avail_missions
+
 
 
 from os.path import expanduser
@@ -9,6 +9,12 @@ def homedir():
 
 def join_path(*args):
     return os.path.join(*args)
+
+default_project_id = 'slib'
+default_project_dir = join_path(homedir(),'projects')
+default_event_id = 'generic'
+default_event_dir = join_path(default_project_dir,default_project_id)
+
 
 
 class DataRequest:
@@ -33,11 +39,6 @@ class DataRequest:
     def id(self):
         return self.__key()
 
-
-default_project_id = 'slib'
-default_project_dir = join_path(homedir(),'projects')
-default_event_id = 'generic'
-default_event_dir = join_path(default_project_dir,default_project_id)
 
 class Event:
 
@@ -105,12 +106,19 @@ class Event:
             mission = data_request.mission
             phys_quant = data_request.phys_quant
             settings = data_request.settings
-            the_mission = (supported_missions[mission])(**settings)
-            the_func = getattr(the_mission,phys_quant)
+            the_mission = (avail_missions[mission])(**settings)
+            # obj_func = getattr(the_mission,phys_quant)
+            for class_func in the_mission.avail_phys_quants:
+                if class_func.__name__ == phys_quant:
+                    break
+            else:
+                print(f'{the_mission.id} does not implement reading function for {phys_quant} yet')
+                return None
+            
             time_range = data_request.time_range
-
             print(f'Processing data_request: {data_request.id}')
-            return the_func(time_range, **settings)
+            # return obj_func(the_mission, time_range, **settings)
+            return class_func(the_mission, time_range, **settings)
 
     def read_data(self, data_requests=None):
         if data_requests is None:
@@ -185,43 +193,3 @@ class Project:
                 if event_info == event.id:
                     self.events.remove(event)
                     break
-
-
-
-
-# # Function to load configuration from a YAML file
-# def load_config(file_path):
-#     with open(file_path, "r") as file:
-#         config = yaml.safe_load(file)
-#     return config
-# 
-# # Example Usage:
-# config_path = "config.yml"
-# config = load_config(config_path)
-# 
-# # Specify the project id and event id when creating the Project and Event instances
-# project_id = "project_1"
-# id = "1"
-# 
-# # Creating a Project instance using the loaded configuration and the specified id
-# project_config = next((p for p in config.get("projects", []) if p["id"] == project_id), {})
-# 
-# if project_config:
-#     local_project_root = join_path(config["default_local_root"], project_id)
-# 
-#     project = Project(id=project_id, dir=local_project_root,)
-# 
-#     # Creating an Event instance with the specified event id
-#     event = Event(id=id, time_range=["2023-01-01T00:00:00", "2023-01-02T00:00:00"], data_requests=[])
-# 
-#     # Adding an event to the project
-#     project.add_event(event)
-# 
-#     # Accessing the event dir directly
-#     print(f"Event dir: {event.dir}")
-# 
-#     # Checking equality based on identity
-#     print(f"Are project and event equal? {project == event}")
-# else:
-#     print(f"Project with id '{project_id}' not found in the configuration.")
-
