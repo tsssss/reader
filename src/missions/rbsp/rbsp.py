@@ -1,5 +1,7 @@
 from missions import register_mission
 from cotrans import regiser_coord
+
+# Need to import each instrument here.
 from missions.rbsp.efw import EFW
 
 
@@ -8,8 +10,6 @@ class RBSP:
 
     probes = ['a','b']
     id = 'rbsp'
-    efw = EFW()
-
 
     def __init__(self, probe=None, **kwargs):
         if probe not in RBSP.probes:
@@ -18,12 +18,22 @@ class RBSP:
         self.prefix = 'rbsp'+probe+'_'
         self.prefix2 = 'rbsp'+'_'+probe+'_'
     
+
+        # Instantiate and register each instrument.
+        self.avail_instruments = []
+        self.efw = EFW(probe)
+        self.avail_instruments.append(self.efw)
+
+
+    
+
+    # Functions that read physical quantities.
     def efield(self, time_range, coord='rbsp_mgse', spin_axis='e0', **kwargs):
-        probe = self.probe
+        var = self.efw.read('l3', time_range, **kwargs)
         pass
 
+    # Need to register each function that reads physical quantities.
     avail_phys_quants = [efield]
-    avail_instruments = [EFW]
 
 
 @regiser_coord

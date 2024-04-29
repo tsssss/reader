@@ -9,6 +9,8 @@ setup(
         'pyspedas',
         'spacepy',
         'wmi',
+        'h5py',
+        'numpy',
     ],
     entry_points={
         'console_scripts': [

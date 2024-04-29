@@ -81,17 +81,22 @@ def get_instr_info_at_cdaweb(probe='a'):
     
     return instr_info
 
+remote_info = {
+    'cdaweb': get_instr_info_at_cdaweb,
+    'umn': get_instr_info_at_umn,
+}
+avail_remote_servers = remote_info.keys()
 
 class EFW:
 
-    remote_root = {
-        'cdaweb': get_instr_info_at_cdaweb,
- #       'umn': get_instr_info_at_umn,
-    }
 
-    def __init__(self, probe='a', time_range=None) -> None:
+    def __init__(self, probe) -> None:
         self.probe = probe
-        self.time_range = time_range
+
+    
+    def read(self, id, time_range, remote_server='cdaweb'):
+        the_remote_info = remote_info[remote_server]
+
 
 
     def read_q_uvw2gse(self, time_range=None, probe='a'):

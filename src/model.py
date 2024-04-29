@@ -1,20 +1,16 @@
-import os
 from missions import avail_missions
+from io.utils import join_path, get_home_dir, file_exists
+import io
+
+cache = {}
 
 
 
-from os.path import expanduser
-def homedir():
-    return expanduser('~')
-
-def join_path(*args):
-    return os.path.join(*args)
-
+default_local_root = join_path(get_home_dir(),'data')
 default_project_id = 'slib'
-default_project_dir = join_path(homedir(),'projects')
+default_project_dir = join_path(get_home_dir(),'projects')
 default_event_id = 'generic'
 default_event_dir = join_path(default_project_dir,default_project_id)
-
 
 
 class DataRequest:
@@ -42,14 +38,24 @@ class DataRequest:
 
 class Event:
 
-    def __init__(self, id=default_event_id, time_range=[],
+    def __init__(self,
+        id=default_event_id,
+        time_range=[],
         dir=default_event_dir, 
+        local_root=default_local_root,
         plot_dir=None,
         data_dir=None,
+        data_file=None,     # Set to save data to this file. Otherwise just load data to memory.
         ) -> None:
+
         self.id = id
         self.dir = dir
         self.time_range = time_range
+        self.local_root = local_root
+        if data_file is None:
+            self.data_file = None
+        else:
+            self.data_file = io.file(data_file)
 
         self.root_dir = join_path(dir,id)
         if data_dir is None:
@@ -126,16 +132,76 @@ class Event:
         for data_request in data_requests:
             self.process_data_request(data_request)
     
-    def read(self, mission, phys_quant, time_range=None, settings={}, **kwargs):
+
+    # This is where we do smart things.
+    def read(self,
+        mission,
+        phys_quant,
+        time_range=None,
+        update=False,       # Set to update the actual data.
+        get_name=False,     # This is to get the default var_info.
+        var_info=None,      # This is rename vars.
+        local_root=default_local_root,
+        dep_vars=[],     # Set this to interpolate data to these depend_vars.
+        **kwargs):
+
+
         # Sheng: does order of kwargs and settings matter? 2024_0426.
-        data_request = self.add_data_request(mission, phys_quant, time_range, {**kwargs,**settings})
-        return self.process_data_request(data_request)
+        the_settings = {**kwargs}
+        data_request = self.add_data_request(mission, phys_quant, time_range, the_settings)
+
+        # Get orig var_info.
+        name_request = data_request.copy()
+        name_request['get_name'] = True
+        orig_var_info = self.process_data_request(name_request)
+        if var_info is None: var_info = orig_var_info
+        if get_name: return orig_var_info
+
+        # Try to load from memory.
+        if update:
+            cache.del_var(var_info)
+        if not cache.check_if_update(var_info, data_request.id):
+            return var_info
+
+        
+        # Try to load from data file.
+        if self.data_file is not None:
+            if update:
+                with open(self.data_file.name):
+                    self.data_file.del_var(var_info)
+            try:
+                self.data_file.read_var(var_info, cache=cache)
+            except:
+                pass
+
+        # Try to load from mission based routines.
+        orig_var_info = self.process_data_request(data_request)
+        for orig_var,var in enumerate(orig_var_info,var_info):
+            cache.rename_var(orig_var,output=var)
+        
+        # Deal with dep_vars.
+        cache.interp_var(var_info, dep_vars)
+        
+        # Save to file.
+        if self.data_file is not None:
+            with open(self.data_file.name):
+                for var in var_info:
+                    self.data_file.save_var(var)
+
+        return var_info
 
 
 class Project:
-    def __init__(self, id=default_project_id, dir=default_project_dir) -> None:
+
+    def __init__(self,
+        id=default_project_id,          # the id of the project.
+        dir=default_project_dir,        # the path of the project.
+        local_root=default_local_root,  # the path to save the mission-based data files.
+        ) -> None:
+
         self.id = id
         self.dir = dir
+        self.local_root = join_path(local_root)
         self.root_dir = join_path(dir,id)
         self.data_dir = join_path(self.root_dir,'data')
         self.plot_dir = join_path(self.root_dir,'plot')
